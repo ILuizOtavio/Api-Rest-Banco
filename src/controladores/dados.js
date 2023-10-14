@@ -2,10 +2,25 @@ const bancodedados = require("../bancodedados");
 
 let identificadorDaConta = 1;
 const hora = new Date();
-const { banco, saques, depositos, transferencias } = bancodedados;
+const { saques, depositos, transferencias } = bancodedados;
 
 let { contas } = bancodedados;
 
+function numeroContaESenha(req, res) {
+  const { numero_conta, senha } = req.query;
+  const conta = contas.find((conta) => {
+    return conta.numero === Number(numero_conta);
+  });
+  if (!conta) {
+    return res.status(404).json({ mensagem: "conta não encontrada" });
+  }
+  if (conta.usuario.senha !== senha) {
+    return res.status(401).json({ mensagem: "senha invalida" });
+  }
+  if (!senha) {
+    return res.status(401).json({ mensagem: "é necessário informar a senha" });
+  }
+}
 function validadorSenhaUsuario(req, res) {
   const { numero_conta, senha, numero_conta_origem } = req.body;
   const conta = contas.find((conta) => {
@@ -243,25 +258,46 @@ const transferirConta = (req, res) => {
   return res.status(204).send();
 };
 const consultarSaldoConta = (req, res) => {
-  const { numero_conta, senha } = req.query;
+  const { numero_conta } = req.query;
   const conta = contas.find((conta) => {
     return conta.numero === Number(numero_conta);
   });
-  if (!conta) {
-    return res.status(404).json({ mensagem: "conta não encontrada" });
-  }
-  if (conta.usuario.senha !== senha) {
-    return res.status(401).json({ mensagem: "senha invalida" });
-  }
-  if (!senha) {
-    return res.status(401).json({ mensagem: "é necessário informar a senha" });
-  }
+  numeroContaESenha(req, res);
   const saldo = {
     saldo: conta.saldo,
   };
   return res.json(saldo);
 };
-const extratoConta = (req, res) => {};
+const extratoConta = (req, res) => {
+  const { numero_conta } = req.query;
+  const conta = contas.find((conta) => {
+    return conta.numero === Number(numero_conta);
+  });
+
+  numeroContaESenha(req, res);
+
+  const depositoConta = depositos.find((deposito) => {
+    return deposito.numero_conta === conta.numero;
+  });
+  const saqueConta = saques.find((saque) => {
+    return saque.numero_conta === conta.numero;
+  });
+  const enviado = transferencias.find((envio) => {
+    return envio.numero_conta_origem == conta.numero;
+  });
+  const recebido = transferencias.find((recebido) => {
+    return recebido.numero_conta_destino == conta.numero;
+  });
+
+  const extrato = {
+    depositos: depositoConta,
+    saques: saqueConta,
+    transferenciasEnviadas: enviado,
+    transferenciasRecebidas: recebido,
+  };
+
+  return res.json(extrato);
+};
 
 module.exports = {
   criarConta,
