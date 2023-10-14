@@ -11,8 +11,6 @@ const {
   extratoConta,
 } = require("./controladores/dados");
 const validarSenhaBanco = require("./intermediarios/validar-senha-banco");
-const validarSenhaConta = require("./intermediarios/validar-senha-conta");
-
 const rotas = express();
 
 rotas.post("/contas", criarConta);
@@ -22,6 +20,6 @@ rotas.post("/transacoes/transferir", transferirConta);
 rotas.put("/contas/:numeroConta/usuario", atualizarConta);
 rotas.delete("/contas/:numeroConta", deletarConta);
 rotas.get("/contas", validarSenhaBanco, listarContas);
-rotas.get("/contas/saldo", validarSenhaConta, consultarSaldoConta);
-rotas.get("/contas/extrato", validarSenhaConta, extratoConta);
+rotas.get("/contas/saldo", consultarSaldoConta);
+rotas.get("/contas/extrato", extratoConta);
 module.exports = rotas;

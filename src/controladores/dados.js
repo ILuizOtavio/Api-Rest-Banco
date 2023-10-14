@@ -1,7 +1,7 @@
 const bancodedados = require("../bancodedados");
 
 let identificadorDaConta = 1;
-
+const hora = new Date();
 const { banco, saques, depositos, transferencias } = bancodedados;
 
 let { contas } = bancodedados;
@@ -44,16 +44,14 @@ function validacaoDadosUsuarios(req, res) {
 }
 function validacaoDadosConta(req, res) {
   const { valor, numero_conta } = req.body;
+  const conta = contas.find((conta) => {
+    return conta.numero === Number(numero_conta);
+  });
   if (!conta) {
     return res.status(404).json({ mensagem: "A conta não foi encontrada" });
   }
 
-  if (!valor) {
-    return res
-      .status(400)
-      .json({ mensagem: "O número da conta e o valor são obrigatórios!" });
-  }
-  if (!numero_conta) {
+  if (!valor || !numero_conta) {
     return res
       .status(400)
       .json({ mensagem: "O número da conta e o valor são obrigatórios!" });
@@ -137,13 +135,13 @@ const atualizarConta = (req, res) => {
   conta.usuario.email = email;
   conta.usuario.senha = senha;
 
-  return res.status(200).send();
+  return res.status(204).send();
 };
 
 const deletarConta = (req, res) => {
-  const { numero } = req.params;
+  const { numeroConta } = req.params;
   const conta = contas.find((conta) => {
-    return conta.numero === Number(numero);
+    return conta.numero === Number(numeroConta);
   });
 
   if (!conta) {
@@ -155,7 +153,7 @@ const deletarConta = (req, res) => {
       .json({ mensagem: "A conta só pode ser removida se o saldo for zero!" });
   }
   contas = contas.filter((conta) => {
-    return conta.numero !== Number(numero);
+    return conta.numero !== Number(numeroConta);
   });
 
   return res.status(204).send();
@@ -167,6 +165,17 @@ const depositarConta = (req, res) => {
     return conta.numero === Number(numero_conta);
   });
   validacaoDadosConta(req, res);
+
+  conta.saldo += valor;
+
+  const registroDeposito = {
+    data: hora.toLocaleString(),
+    numero_conta: conta.numero,
+    valor,
+  };
+  depositos.push(registroDeposito);
+
+  return res.status(204).send();
 };
 
 const sacarConta = (req, res) => {
@@ -174,8 +183,28 @@ const sacarConta = (req, res) => {
   const conta = contas.find((conta) => {
     return conta.numero === Number(numero_conta);
   });
+  if (!senha) {
+    return res.status(401).json({ mensagem: " É necessario informar a senha" });
+  }
+
+  if (conta.usuario.senha !== senha) {
+    return res.status(401).json({ mensagem: "senha incorreta" });
+  }
+  if (valor > conta.saldo) {
+    return res.status(400).json({ mensagem: "Saldo insuficiente" });
+  }
 
   validacaoDadosConta(req, res);
+
+  conta.saldo -= valor;
+
+  const registroSaque = {
+    data: hora.toLocaleString(),
+    numero_conta: conta.numero,
+    valor,
+  };
+  saques.push(registroSaque);
+  return res.status(204).send();
 };
 
 const transferirConta = (req, res) => {};
