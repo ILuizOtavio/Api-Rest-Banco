@@ -1,13 +1,13 @@
 const { banco } = require("../bancodedados");
 
 const validarSenhaConta = (req, res, next) => {
-  const { senha_banco } = req.query;
+  const { senha_conta } = req.query;
 
-  if (!senha_banco) {
+  if (!senha_conta) {
     return res.json("A senha não foi informada");
   }
 
-  if (senha_banco !== banco.contas.usuario.senha) {
+  if (senha_conta !== banco.contas.usuario.senha) {
     return res.json("A senha da conta informada é inválida!");
   }
 

@@ -1,14 +1,13 @@
 const bancodedados = require("../bancodedados");
-let identificadorDaConta = 1;
-const { banco, contas, saques, depositos, transferencias } = bancodedados;
 
-const criarConta = (req, res) => {
+let identificadorDaConta = 1;
+
+const { banco, saques, depositos, transferencias } = bancodedados;
+
+let { contas } = bancodedados;
+
+function validacaoDadosUsuarios(req, res) {
   const { nome, cpf, data_nascimento, telefone, email, senha } = req.body;
-  if (!req.body) {
-    return res.status(400).json({
-      mensagem: "É necessario informar os dados da conta a ser criada",
-    });
-  }
 
   if (!nome) {
     return res.status(400).json({
@@ -42,9 +41,54 @@ const criarConta = (req, res) => {
       mensagem: "A senha é obrigatória",
     });
   }
+}
+function validacaoDadosConta(req, res) {
+  const { valor, numero_conta } = req.body;
+  if (!conta) {
+    return res.status(404).json({ mensagem: "A conta não foi encontrada" });
+  }
 
+  if (!valor) {
+    return res
+      .status(400)
+      .json({ mensagem: "O número da conta e o valor são obrigatórios!" });
+  }
+  if (!numero_conta) {
+    return res
+      .status(400)
+      .json({ mensagem: "O número da conta e o valor são obrigatórios!" });
+  }
+  if (valor < 0 || valor === 0) {
+    return res.status(400).json({ mensagem: "Valor Inválido" });
+  }
+}
+function mesmoCpfOumesmoEmail(req, res) {
+  const { nome, cpf, data_nascimento, telefone, email, senha } = req.body;
+
+  const mesmoCpf = contas.find((contaCpf) => {
+    return contaCpf.usuario.cpf === cpf;
+  });
+
+  const mesmoEmail = contas.find((contaEmail) => {
+    return contaEmail.usuario.email === email;
+  });
+
+  if (mesmoCpf || mesmoEmail) {
+    return true;
+  }
+}
+const criarConta = (req, res) => {
+  const { nome, cpf, data_nascimento, telefone, email, senha } = req.body;
+  validacaoDadosUsuarios(req, res);
+  const cpfOuEmail = mesmoCpfOumesmoEmail(req, res);
+
+  if (cpfOuEmail) {
+    return res.status(400).json({
+      mensagem: "Já existe uma conta com o cpf ou e-mail informado!",
+    });
+  }
   const contaNova = {
-    numero: identificadorDaConta++,
+    numero: identificadorDaConta,
     saldo: 0,
     usuario: {
       nome,
@@ -57,6 +101,7 @@ const criarConta = (req, res) => {
   };
 
   contas.push(contaNova);
+  identificadorDaConta++;
 
   return res.status(201).json({ mensagem: "Conta criada com sucesso" });
 };
@@ -66,48 +111,25 @@ const listarContas = (req, res) => {
 };
 
 const atualizarConta = (req, res) => {
-  const { numero } = req.params;
+  const { numeroConta } = req.params;
   const { nome, cpf, data_nascimento, telefone, email, senha } = req.body;
 
   const conta = contas.find((conta) => {
-    return conta.numero === Number(numero);
+    return conta.numero === Number(numeroConta);
   });
+
   if (!conta) {
-    return res.status(404).json({ mensagem: "conta não encontrada" });
-  }
-  if (!nome) {
-    return res.status(400).json({
-      mensagem: "O nome é obrigatório",
-    });
+    return res.status(404).json({ mensagem: "Conta não encontrada" });
   }
 
-  if (!cpf) {
-    return res.status(400).json({
-      mensagem: "O CPF é obrigatório",
-    });
-  }
+  validacaoDadosUsuarios(req, res);
+  const cpfOuEmail = mesmoCpfOumesmoEmail(req, res);
 
-  if (!email) {
+  if (cpfOuEmail) {
     return res.status(400).json({
-      mensagem: "O E-mail é obrigatório",
+      mensagem: "Já existe uma conta com o cpf ou e-mail informado!",
     });
   }
-  if (!telefone) {
-    return res.status(400).json({
-      mensagem: "O telefone é obrigatório",
-    });
-  }
-  if (!data_nascimento) {
-    return res.status(400).json({
-      mensagem: "A data de nascimento é obrigatória",
-    });
-  }
-  if (!senha) {
-    return res.status(400).json({
-      mensagem: "A senha é obrigatória",
-    });
-  }
-
   conta.usuario.nome = nome;
   conta.usuario.cpf = cpf;
   conta.usuario.data_nascimento = data_nascimento;
@@ -115,7 +137,7 @@ const atualizarConta = (req, res) => {
   conta.usuario.email = email;
   conta.usuario.senha = senha;
 
-  return res.status(200).json({ mensagem: "requisição bem sucedida" });
+  return res.status(200).send();
 };
 
 const deletarConta = (req, res) => {
@@ -139,13 +161,28 @@ const deletarConta = (req, res) => {
   return res.status(204).send();
 };
 
-const depositarConta = (req, res) => {};
+const depositarConta = (req, res) => {
+  const { valor, numero_conta } = req.body;
+  const conta = contas.find((conta) => {
+    return conta.numero === Number(numero_conta);
+  });
+  validacaoDadosConta(req, res);
+};
 
-const sacarConta = (req, res) => {};
+const sacarConta = (req, res) => {
+  const { numero_conta, valor, senha } = req.body;
+  const conta = contas.find((conta) => {
+    return conta.numero === Number(numero_conta);
+  });
+
+  validacaoDadosConta(req, res);
+};
 
 const transferirConta = (req, res) => {};
 
-const consultarSaldoConta = (req, res) => {};
+const consultarSaldoConta = (req, res) => {
+  return res.json({ saldo });
+};
 
 const extratoConta = (req, res) => {};
 
